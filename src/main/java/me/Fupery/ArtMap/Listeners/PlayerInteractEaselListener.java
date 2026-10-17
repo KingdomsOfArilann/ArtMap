@@ -38,9 +38,11 @@ class PlayerInteractEaselListener implements RegisteredListener {
     public void onPistonExtend(BlockPistonExtendEvent event) {
         Block block = event.getBlock();
         if (block.getType().name().contains("PISTON")) {
-            ArtMap.instance().getEasels().values().stream().filter(easel -> easel.getLocation().distanceSquared(block.getLocation()) <= 4).findFirst().ifPresent(_ -> {
-                event.setCancelled(true);
-            });
+            ArtMap.instance().getEasels().values().stream()
+                    .filter(easel -> easel.getLocation().getWorld() == block.getLocation().getWorld() && easel.getLocation().distanceSquared(block.getLocation()) <= 4).findFirst()
+                    .ifPresent(_ -> {
+                        event.setCancelled(true);
+                    });
         }
     }
 
@@ -60,10 +62,12 @@ class PlayerInteractEaselListener implements RegisteredListener {
             return;
         }
 
-        ArtMap.instance().getEasels().values().stream().filter(easel -> easel.getLocation().distanceSquared(clickedBlock.getLocation()) <= 4).findFirst().ifPresent(_ -> {
-            event.setCancelled(true);
-            event.getPlayer().sendRichMessage("<red>Cannot open shulker near an easel.");
-        });
+        ArtMap.instance().getEasels().values().stream()
+                .filter(easel -> easel.getLocation().getWorld() == clickedBlock.getLocation().getWorld() && easel.getLocation().distanceSquared(clickedBlock.getLocation()) <= 4)
+                .findFirst().ifPresent(_ -> {
+                    event.setCancelled(true);
+                    event.getPlayer().sendRichMessage("<red>Cannot open shulker near an easel.");
+                });
     }
 
     @EventHandler(priority = EventPriority.LOW)

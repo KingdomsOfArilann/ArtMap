@@ -11,7 +11,7 @@ shadow = "9.6.1"
 towny = "0.103.2.13"
 version-catalog = "1.1.1"
 worldedit = "7.4.6"
-worldguard = "7.0.19"
+worldguard = "7.0.20"
 
 [libraries]
 anvilgui = { module = "net.wesjd:anvilgui", version.ref = "anvilgui" }
