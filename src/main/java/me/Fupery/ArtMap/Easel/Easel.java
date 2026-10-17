@@ -1,5 +1,6 @@
 package me.Fupery.ArtMap.Easel;
 
+import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.sql.SQLException;
 import java.util.Collection;
@@ -176,12 +177,13 @@ public class Easel {
         }
     }
 
-    /**
-     * Breaks the easel, dropping it along with any mounted items.
-     */
+    /** Breaks the easel, dropping it along with any mounted items. */
     public void breakEasel() {
         if (!spawned.getAndSet(false)) return;
-
+        // End the painter's session before the seat is removed, or they stay in ArtistHandler's map
+        // forever with all entity interactions cancelled (#376).
+        endUserSession();
+        
         ArtMap.instance().getScheduler().SYNC.run(() -> {
             try {
                 final Collection<Entity> entities = getNearbyEntities();
@@ -252,6 +254,20 @@ public class Easel {
         return user;
     }
 
+    /** Ends the session of whoever is painting here, if anyone; safe when nobody is or they are offline. */
+    private void endUserSession() {
+        if (user == null) return;
+        Player painter = ArtMap.instance().getServer().getPlayer(user);
+        if (painter != null) {
+            try {
+                ArtMap.instance().getArtistHandler().removePlayer(painter);
+            } catch (SQLException | IOException e) {
+                ArtMap.instance().getLogger().log(Level.SEVERE, "Error ending art session on easel break!", e);
+            }
+        }
+        user = null;
+    }
+    
     public void removeUser() {
         Collection<Entity> entities = getNearbyEntities();
         seat.remove(entities);

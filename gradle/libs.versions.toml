@@ -1,0 +1,27 @@
+[versions]
+anvilgui = "1.10.13-SNAPSHOT"
+# @keep 
+jdk = "25"
+# @keep
+minecraft = "26.3"
+paperweight = "2.0.0-beta.24"
+plugin-yml = "0.9.0"
+run-paper = "3.1.0"
+shadow = "9.6.1"
+towny = "0.103.2.13"
+version-catalog = "1.1.1"
+worldedit = "7.4.6"
+worldguard = "7.0.19"
+
+[libraries]
+anvilgui = { module = "net.wesjd:anvilgui", version.ref = "anvilgui" }
+towny = { module = "com.palmergames.bukkit.towny:towny", version.ref = "towny" }
+worldedit-bukkit = { module = "com.sk89q.worldedit:worldedit-bukkit", version.ref = "worldedit" }
+worldguard-bukkit = { module = "com.sk89q.worldguard:worldguard-bukkit", version.ref = "worldguard" }
+
+[plugins]
+catalog-updater = { id = "nl.littlerobots.version-catalog-update", version.ref = "version-catalog" }
+paperweight-userdev = { id = "io.papermc.paperweight.userdev", version.ref = "paperweight" }
+plugin-yml-paper = { id = "de.eldoria.plugin-yml.paper", version.ref = "plugin-yml" }
+run-paper = { id = "xyz.jpenilla.run-paper", version.ref = "run-paper" }
+shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }

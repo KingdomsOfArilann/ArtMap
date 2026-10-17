@@ -11,6 +11,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPhysicsEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
@@ -31,6 +32,39 @@ import me.Fupery.ArtMap.Recipe.ArtMaterial;
 import me.Fupery.ArtMap.api.Easel.ClickType;
 
 class PlayerInteractEaselListener implements RegisteredListener {
+
+    // Prevent item frame dupe bug by preventing piston near easel.
+    @EventHandler
+    public void onPistonExtend(BlockPistonExtendEvent event) {
+        Block block = event.getBlock();
+        if (block.getType().name().contains("PISTON")) {
+            ArtMap.instance().getEasels().values().stream().filter(easel -> easel.getLocation().distanceSquared(block.getLocation()) <= 4).findFirst().ifPresent(_ -> {
+                event.setCancelled(true);
+            });
+        }
+    }
+
+    // Prevent item frame dupe bug by preventing opening shulker near easel.
+    @EventHandler
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) {
+            return;
+        }
+
+        Block clickedBlock = event.getClickedBlock();
+        if (clickedBlock == null) {
+            return;
+        }
+
+        if (!clickedBlock.getType().name().contains("SHULKER_BOX")) {
+            return;
+        }
+
+        ArtMap.instance().getEasels().values().stream().filter(easel -> easel.getLocation().distanceSquared(clickedBlock.getLocation()) <= 4).findFirst().ifPresent(_ -> {
+            event.setCancelled(true);
+            event.getPlayer().sendRichMessage("<red>Cannot open shulker near an easel.");
+        });
+    }
 
     @EventHandler(priority = EventPriority.LOW)
     public void onPlayerInteractAtEntity(PlayerInteractAtEntityEvent event) {
@@ -53,7 +87,6 @@ class PlayerInteractEaselListener implements RegisteredListener {
         checkPreviewing(player, event);
     }
 
-
     @EventHandler(priority = EventPriority.LOW)
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         callEaselEvent(event.getDamager(), event.getEntity(), event, ClickType.LEFT_CLICK);
@@ -66,27 +99,26 @@ class PlayerInteractEaselListener implements RegisteredListener {
         }
     }
 
-	@EventHandler
-	public void onRightClick(PlayerInteractEvent e) {
-		Player p = e.getPlayer();
-		Action a = e.getAction();
+    @EventHandler
+    public void onRightClick(PlayerInteractEvent e) {
+        Player p = e.getPlayer();
+        Action a = e.getAction();
 
-        //prevent touching the easel sign
-        if(e.getClickedBlock() != null) {
+        // prevent touching the easel sign
+        if (e.getClickedBlock() != null) {
             this.checkEaselSignEvent(e.getClickedBlock(), e);
         }
 
-        //check for paintbrush click
-		if ( a == Action.RIGHT_CLICK_AIR && e.getItem() != null
-				&& (ArtMaterial.getCraftItemType(e.getItem()) == ArtMaterial.PAINT_BRUSH)) {
-			ArtMap.instance().getScheduler().SYNC.run(() -> {
-				PlayerOpenMenuEvent event = new PlayerOpenMenuEvent(p);
-				Bukkit.getServer().getPluginManager().callEvent(event);
-				MenuHandler menuHandler = ArtMap.instance().getMenuHandler();
-				menuHandler.openMenu((p), menuHandler.MENU.HELP.get((p)));
-			});
-		}
-	}
+        // check for paintbrush click
+        if (a == Action.RIGHT_CLICK_AIR && e.getItem() != null && (ArtMaterial.getCraftItemType(e.getItem()) == ArtMaterial.PAINT_BRUSH)) {
+            ArtMap.instance().getScheduler().SYNC.run(() -> {
+                PlayerOpenMenuEvent event = new PlayerOpenMenuEvent(p);
+                Bukkit.getServer().getPluginManager().callEvent(event);
+                MenuHandler menuHandler = ArtMap.instance().getMenuHandler();
+                menuHandler.openMenu((p), menuHandler.MENU.HELP.get((p)));
+            });
+        }
+    }
 
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
@@ -106,34 +138,36 @@ class PlayerInteractEaselListener implements RegisteredListener {
 
     private void callEaselEvent(Entity clicker, Entity clicked, Cancellable event, ClickType click) {
         EaselPart part = EaselPart.getPartType(clicked);
-        if (part == null || part == EaselPart.SEAT || part == EaselPart.MARKER) return;
+        if (part == null || part == EaselPart.SEAT || part == EaselPart.MARKER)
+            return;
         Easel easel = Easel.getEasel(clicked.getLocation(), part);
-        if (easel == null) return;
+        if (easel == null)
+            return;
 
         event.setCancelled(true);
 
-        if (!(clicker instanceof Player)) return;
+        if (!(clicker instanceof Player))
+            return;
         Player player = (Player) clicker;
 
-        boolean interactionAllowed = (click == ClickType.SHIFT_RIGHT_CLICK) ?
-                ArtMap.instance().getCompatManager().checkBuildAllowed(player, clicked.getLocation()) :
-                ArtMap.instance().getCompatManager().checkInteractAllowed(player, clicked, click);
+        boolean interactionAllowed = (click == ClickType.SHIFT_RIGHT_CLICK) ? ArtMap.instance().getCompatManager().checkBuildAllowed(player, clicked.getLocation())
+                : ArtMap.instance().getCompatManager().checkInteractAllowed(player, clicked, click);
 
         if (!interactionAllowed) {
             Lang.ActionBar.NO_PERM_ACTION.send(player);
             easel.playEffect(EaselEffect.USE_DENIED);
             return;
         }
-        if (!checkIsPainting(player, event)) new EaselEvent(easel, click, player).callEvent();
+        if (!checkIsPainting(player, event))
+            new EaselEvent(easel, click, player).callEvent();
     }
 
     private ClickType isSneaking(Player player) {
-        return (player.isSneaking()) ? ClickType.SHIFT_RIGHT_CLICK :
-                ClickType.RIGHT_CLICK;
+        return (player.isSneaking()) ? ClickType.SHIFT_RIGHT_CLICK : ClickType.RIGHT_CLICK;
     }
 
     private boolean checkIsPainting(Player player, Cancellable event) {
-		if (player.isInsideVehicle() && ArtMap.instance().getArtistHandler().containsPlayer(player)) {
+        if (player.isInsideVehicle() && ArtMap.instance().getArtistHandler().containsPlayer(player)) {
             event.setCancelled(true);
             return true;
         }
@@ -141,17 +175,20 @@ class PlayerInteractEaselListener implements RegisteredListener {
     }
 
     private void checkPreviewing(Player player, Cancellable event) {
-        if (ArtMap.instance().getPreviewManager().endPreview(player)) event.setCancelled(true);
+        if (ArtMap.instance().getPreviewManager().endPreview(player))
+            event.setCancelled(true);
     }
 
-    /** Check if the event is interacting with a easel sign.  Cancel the event if it is  */
+    /**
+     * Check if the event is interacting with a easel sign. Cancel the event if it
+     * is
+     */
     private boolean checkEaselSignEvent(Block block, Cancellable event) {
         if (block.getType() == ArtMap.instance().getBukkitVersion().getVersion().getWallSign()) {
             Sign sign = ((Sign) block.getState());
 
             if (sign.getLine(3).equals(EaselPart.ARBITRARY_SIGN_ID)) {
-                if (ArtMap.instance().getEasels().containsKey(block.getLocation())
-                        || Easel.checkForEasel(block.getLocation())) {
+                if (ArtMap.instance().getEasels().containsKey(block.getLocation()) || Easel.checkForEasel(block.getLocation())) {
                     event.setCancelled(true);
                     return true;
                 }
@@ -160,9 +197,12 @@ class PlayerInteractEaselListener implements RegisteredListener {
         return false;
     }
 
-	@Override
+    @Override
     public void unregister() {
         PlayerInteractAtEntityEvent.getHandlerList().unregister(this);
+        // onRightClick listens on PlayerInteractEvent; leaving it registered kept a
+        // dead listener wired up across a disable/reload.
+        PlayerInteractEvent.getHandlerList().unregister(this);
         PlayerArmorStandManipulateEvent.getHandlerList().unregister(this);
         PlayerInteractEntityEvent.getHandlerList().unregister(this);
         EntityDamageByEntityEvent.getHandlerList().unregister(this);

@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.sql.SQLException;
 import java.text.MessageFormat;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.LinkedList;
 import java.util.List;
@@ -82,8 +81,8 @@ public class CommandExport extends AsyncCommand {
                         if(p==null) {
                             if(sender != null) {
                                 sender.sendMessage("Player not found! :: " + args[2]);
-                                return;
                             }
+                            return;
                         }
                         arts = ArtMap.instance().getArtDatabase().listMapArt(p.getUniqueId());
                     } catch (SQLException e) {
@@ -125,6 +124,7 @@ public class CommandExport extends AsyncCommand {
             default:
                 // TODO: need usage
                 msg.message = Lang.COMMAND_EXPORT.get();
+                return;
         }
 
         if (artToExport.isEmpty()) {
@@ -167,10 +167,7 @@ public class CommandExport extends AsyncCommand {
         }
     }
 
-    /**
-     * Class to gson export and import ArtMap data. Purposefully exludes mapId as it
-     * will need to be given a new id on the import side.
-     */
+    /** Gson export/import of ArtMap data. Purposefully excludes mapId, which is reassigned on import. */
     public static class ArtworkExport {
         private String title;
         private UUID artist;
@@ -198,10 +195,7 @@ public class CommandExport extends AsyncCommand {
             this.mapData = Base64.getEncoder().encodeToString(map.getCompressedMap());
         }
 
-        /**
-         * Import this artwork in the database.
-         * 
-         */
+        /** Import this artwork into the database. */
         public void importArtwork(CommandSender sender) {
             // 1.14 requires create map to be run on the main thread!
             ArtMap.instance().getScheduler().SYNC.run(() -> {

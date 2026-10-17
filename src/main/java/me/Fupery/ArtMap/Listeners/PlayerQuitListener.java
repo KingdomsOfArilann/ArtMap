@@ -60,6 +60,9 @@ class PlayerQuitListener implements RegisteredListener {
         PlayerQuitEvent.getHandlerList().unregister(this);
         PlayerDeathEvent.getHandlerList().unregister(this);
         PlayerTeleportEvent.getHandlerList().unregister(this);
+        // onPlayerKick / onPlayerDamage were never torn down.
+        PlayerKickEvent.getHandlerList().unregister(this);
+        EntityDamageEvent.getHandlerList().unregister(this);
     }
 
     /**
@@ -70,14 +73,13 @@ class PlayerQuitListener implements RegisteredListener {
      */
     public static void endPlayerArtSession(Player player) {
         if (ArtMap.instance().getArtistHandler().containsPlayer(player)) {
-            if (player.isInsideVehicle()) {
-                ArtMap.instance().getArtistHandler().getCurrentSession(player).removeKit(player);
-                try {
-                    ArtMap.instance().getArtistHandler().removePlayer(player);
-                } catch (SQLException | IOException e) {
-                    ArtMap.instance().getLogger().log(Level.SEVERE, "Database error!", e);
-                    return; 
-                }
+            // Always end the session, even off the easel: gating on isInsideVehicle() left players stranded
+            // once the seat was gone (#376). removeKit() is a no-op when it has already run.
+            try {
+                ArtMap.instance().getArtistHandler().removePlayer(player);
+            } catch (SQLException | IOException e) {
+                ArtMap.instance().getLogger().log(Level.SEVERE, "Database error!", e);
+                return; 
             }
         }
 		if (ArtMap.instance().getPreviewManager().isPreviewing(player)) {

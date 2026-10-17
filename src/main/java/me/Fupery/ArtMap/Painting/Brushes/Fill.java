@@ -68,27 +68,29 @@ public class Fill extends Brush {
     private void fillPixel(ArtDye colour) {
         final byte[] pixel = getCurrentPixel();
 
-        if (pixel != null) {
-
-            final boolean[][] coloured = new boolean[axisLength][axisLength];
-            final byte clickedColour = getPixelBuffer()[pixel[0]][pixel[1]];
-            final byte setColour = colour.getDyeColour(clickedColour);
-
-            ArtMap.instance().getScheduler().ASYNC.run(() -> fillBucket(coloured, pixel[0], pixel[1], clickedColour, setColour));
+        if (pixel == null) {
+            return;
         }
+
+        final boolean[][] coloured = new boolean[axisLength][axisLength];
+        final byte clickedColour = getPixelBuffer()[pixel[0]][pixel[1]];
+        final byte setColour = colour.getDyeColour(clickedColour);
+
+        ArtMap.instance().getScheduler().ASYNC.run(() -> fillBucket(coloured, pixel[0], pixel[1], clickedColour, setColour));
     }
 
     private void fillPixel(byte colour) {
         final byte[] pixel = getCurrentPixel();
 
-        if (pixel != null) {
-
-            final boolean[][] coloured = new boolean[axisLength][axisLength];
-            final byte clickedColour = getPixelBuffer()[pixel[0]][pixel[1]];
-            final byte setColour = colour;
-
-            ArtMap.instance().getScheduler().ASYNC.run(() -> fillBucket(coloured, pixel[0], pixel[1], clickedColour, setColour));
+        if (pixel == null) {
+            return;
         }
+
+        final boolean[][] coloured = new boolean[axisLength][axisLength];
+        final byte clickedColour = getPixelBuffer()[pixel[0]][pixel[1]];
+        final byte setColour = colour;
+
+        ArtMap.instance().getScheduler().ASYNC.run(() -> fillBucket(coloured, pixel[0], pixel[1], clickedColour, setColour));
     }
 
     private void fillBucket(boolean[][] coloured, int x, int y, byte sourceColour, byte newColour) {

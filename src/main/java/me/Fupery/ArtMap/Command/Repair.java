@@ -52,7 +52,7 @@ public class Repair extends AsyncCommand {
                 msg.message = repair(args[2], true);
                 break;
             default:
-                msg.message = Lang.COMMAND_EXPORT.get();
+                msg.message = Lang.REPAIR_USAGE.get();
                 return;
         }
 
@@ -86,7 +86,11 @@ public class Repair extends AsyncCommand {
             
         } catch (FileNotFoundException e) {
             return e.getMessage();
+        } catch (SQLException e) {
+            ArtMap.instance().getLogger().log(Level.SEVERE, "Failed to retrieve artwork! :: " + id, e);
+            return "Database error! Check logs.";
         }
+
         
     }
 
@@ -111,8 +115,8 @@ public class Repair extends AsyncCommand {
                         } else {
                             good++;
                         }
-                    } catch (FileNotFoundException e) {
-                        ArtMap.instance().getLogger().log(Level.SEVERE, "Failed to retrieve artwork! :: " + art.getMapId());
+                    } catch (FileNotFoundException | SQLException e) {
+                        ArtMap.instance().getLogger().log(Level.SEVERE, "Failed to retrieve artwork! :: " + art.getMapId(), e);
                         failed++;
                     }
                     completed++;
@@ -140,16 +144,14 @@ public class Repair extends AsyncCommand {
      * 
      * @param id     The Map ID of the artwork to repair
      * @param repair True - Attempt to repair to artwork.
-     * @return
-     * @throws FileNotFoundException
+     * @return True if the artwork was found corrupted (and repaired, when asked).
+     * @throws FileNotFoundException No artwork has this id.
+     * @throws SQLException The lookup failed.
      */
-    private boolean repairArtwork(int id, boolean repair) throws FileNotFoundException {
-        Optional<MapArt> art = Optional.empty();
-        try {
-            art = ArtMap.instance().getArtDatabase().getArtwork(id);
-        } catch (SQLException e) {
-            return false;
-        }
+
+    private boolean repairArtwork(int id, boolean repair) throws FileNotFoundException, SQLException {
+        // A lookup failure must surface: swallowing it read as "artwork is in a good state".
+        Optional<MapArt> art = ArtMap.instance().getArtDatabase().getArtwork(id);
         if(!art.isPresent()) {
             throw new FileNotFoundException("Artwork with the provided ID does not exist. :: " + id);
         }

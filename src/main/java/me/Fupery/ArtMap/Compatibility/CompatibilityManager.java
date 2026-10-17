@@ -23,6 +23,8 @@ import me.Fupery.ArtMap.api.Compatability.ReflectionHandler;
 import me.Fupery.ArtMap.api.Compatability.RegionHandler;
 import me.Fupery.ArtMap.api.Easel.ClickType;
 import me.Fupery.ArtMap.api.Utils.Version;
+import me.Fupery.ArtMap.api.Utils.VersionHandler;
+import me.Fupery.ArtMap.api.Utils.VersionHandler.BukkitVersion;
 
 public class CompatibilityManager implements RegionHandler {
     private List<RegionHandler> regionHandlers;
@@ -30,6 +32,7 @@ public class CompatibilityManager implements RegionHandler {
     private ReflectionHandler reflectionHandler;
     private Palette palette;
     private IHeadsRetriever headsRetriever;
+    private String leftClickPacket;
 
     public CompatibilityManager(JavaPlugin plugin) {
         regionHandlers = new ArrayList<>();
@@ -47,7 +50,15 @@ public class CompatibilityManager implements RegionHandler {
         }
 
         //figure out palette version to load
+        BukkitVersion version = VersionHandler.checkVersion();
         palette = new Palette_1_18();
+        
+        //which client packet carries a left-click on the canvas: 26.3 replaced the arm swing with a punch
+        if(version.isLessThan(BukkitVersion.v26_3)) {
+            leftClickPacket = "ARM_ANIMATION";
+        } else {
+            leftClickPacket = "PUNCH";
+        }
 
         //which head loading code should we be using
         headsRetriever = new HeadRetrieval_1_20_2();
@@ -94,6 +105,12 @@ public class CompatibilityManager implements RegionHandler {
         return headsRetriever;
     }
 
+    /** The ProtocolLib PacketType.Play.Client field name of this server's canvas left-click packet. A name rather
+     *  than the type: ArtMap builds against a ProtocolLib that predates 26.3's PUNCH. */
+    public String getLeftClickPacket() {
+        return leftClickPacket;
+    }
+    
     private ReflectionHandler loadReflectionHandler() {
         return new VanillaReflectionHandler();
     }

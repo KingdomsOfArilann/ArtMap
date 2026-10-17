@@ -55,9 +55,16 @@ public class ArtistHandler implements IArtistHandler {
 				session.updatePosition(packetLook.getYaw(), packetLook.getPitch());
 				return true;
 				// Handle Save brush
-			} else if (type == PacketType.INTERACT && ArtMaterial
+			} else if ((type == PacketType.INTERACT || type == PacketType.ARM_ANIMATION) && ArtMaterial
 					.getCraftItemType(sender.getInventory().getItemInMainHand()) == ArtMaterial.PAINT_BRUSH) {
 				return this.handlePaintBrush(sender, session);
+			} else if (type == PacketType.ARM_ANIMATION) {
+                // Through MC 1.21.11 the client sent USE_ENTITY ATTACK for a canvas left-click; from 26.1 it only
+                // swings (26.3: punches, which arrives here as the same packet), so treat the swing as a click (#373).
+                // Trailing swings are absorbed by the brush cooldown.
+                session.paint(sender.getInventory().getItemInMainHand(), BrushAction.LEFT_CLICK);
+                session.sendMap(sender);
+                return true;
 			} else if (type == PacketType.INTERACT) {
 				InteractType click = ((ArtistPacket.PacketInteract) packet).getInteraction();
 				session.paint(sender.getInventory().getItemInMainHand(),
@@ -155,14 +162,19 @@ public class ArtistHandler implements IArtistHandler {
 	}
 
 	public void removePlayer(final Player player) throws SQLException, IOException {
-		if (!containsPlayer(player))
+		if (player == null)
 			return;// just for safety :)
-		ArtSession session = artists.get(player.getUniqueId());
-		if (!session.isActive())
+        // Remove the map entry first: bailing out on !isActive() stranded players in `artists` and cancelled
+        // all their USE_ENTITY packets, so item frames silently stopped working (#376).
+        ArtSession session = artists.remove(player.getUniqueId());
+        if (session == null)
 			return;
-		artists.remove(player.getUniqueId());
-		session.end(player);
-		ArtMap.instance().getProtocolManager().getPacketReceiver().uninjectPlayer(player);
+        try {
+            if (session.isActive())
+                session.end(player);
+        } finally {
+            ArtMap.instance().getProtocolManager().getPacketReceiver().uninjectPlayer(player);
+        }
 	}
 
 	public ArtSession getCurrentSession(Player player) {

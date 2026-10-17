@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
@@ -14,7 +15,6 @@ import com.google.gson.GsonBuilder;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.map.MapView;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -166,6 +166,7 @@ public class ArtMap extends JavaPlugin implements IArtMap {
 			Lang.load(this, config);
 			reflection = new Reflection();
 			scheduler = new Scheduler(this);
+			this.getLogger().info(() -> "Running on: " + Bukkit.getServer().getBukkitVersion());
 			bukkitVersion = new VersionHandler(this);
 			compatManager = new CompatibilityManager(this);
 			protocolHandler = new ProtocolHandler();
@@ -187,14 +188,7 @@ public class ArtMap extends JavaPlugin implements IArtMap {
 			eventManager = new EventManager(this, bukkitVersion);
 			previewManager = new PreviewManager();
 			menuHandler = new MenuHandler(this);
-			PluginCommand artCommand = getCommand("art");
-			if(artCommand!=null) {
-				artCommand.setExecutor(new CommandHandler());
-			} else {
-				getLogger().severe("Failed to bind /art or /artmap! Disabling...");
-				getPluginLoader().disablePlugin(this);
-				return;
-			}
+			registerCommand("art", List.of("artmap"), new CommandHandler());
 			// load the artist button cache
 			headsCache = new HeadsCache(this);
 		} catch( Exception e ) {

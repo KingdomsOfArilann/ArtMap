@@ -5,10 +5,12 @@ import java.util.HashMap;
 import java.util.Optional;
 import java.util.logging.Level;
 
+import io.papermc.paper.command.brigadier.BasicCommand;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -27,7 +29,7 @@ import me.Fupery.ArtMap.Recipe.ArtItem;
 import me.Fupery.ArtMap.Recipe.ArtMaterial;
 import me.Fupery.ArtMap.Utils.ItemUtils;
 
-public class CommandHandler implements CommandExecutor {
+public class CommandHandler implements BasicCommand {
 
     private final HashMap<String, AsyncCommand> commands;
 
@@ -173,7 +175,8 @@ public class CommandHandler implements CommandExecutor {
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, org.bukkit.command.Command command, String label, String[] args) {
+	public void execute(CommandSourceStack source, String[] args) {
+		CommandSender sender = source.getSender();
 		// handle quoted arguements since spigot does not
 		String[] fixedArgs = fixQuotedArgs(args);
 
@@ -188,7 +191,6 @@ public class CommandHandler implements CommandExecutor {
         } else {
 			commands.get("help").runPlayerCommand(sender, fixedArgs);
         }
-        return true;
     }
 
 	/**

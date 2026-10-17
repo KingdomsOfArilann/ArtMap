@@ -41,18 +41,27 @@ public class PreviewManager {
     }
 
     public void endAllPreviews() {
-        activePreviews.keySet().forEach(this::endPreview);
+        // Iterate a copy: endPreview() removes from the map, and the scheduler can run the task on the same tick.
+        for (UUID uuid : new java.util.ArrayList<>(activePreviews.keySet())) {
+            endPreview(uuid);
+        }
     }
 
     void endPreview(UUID uuid) {
         ArtMap.instance().getScheduler().SYNC.run(() -> {
             Player player = Bukkit.getPlayer(uuid);
+            if (player == null) {
+                // Scheduled 300 ticks out; if the player logged off, Bukkit.getPlayer is null. Drop the stale
+                // entry rather than dereferencing it, or their next clicks stay swallowed as "previewing".
+                activePreviews.remove(uuid);
+                return;
+            }
             endPreview(player);
         });
     }
 
     public boolean endPreview(Player player) {
-        if (!isPreviewing(player.getUniqueId())) {
+        if (player == null || !isPreviewing(player.getUniqueId())) {
             return false;
         }
         Preview preview = getPreview(player);

@@ -111,8 +111,8 @@ public class ArtSession implements IArtSession {
         long strokeTime = currentTime - lastStroke;
         if (strokeTime > currentBrush.getCooldown()) {
             currentBrush.paint(action, brush, strokeTime);
+            lastStroke = currentTime;
         }
-        lastStroke = System.currentTimeMillis();
     }
 
     private Brush getBrushType(ItemStack item) {
@@ -160,9 +160,7 @@ public class ArtSession implements IArtSession {
         }
     }
 
-    /*
-     * Set the contents of the inventory without replacing the hotkey bar.
-     */
+    /* Set the contents of the inventory without replacing the hotkey bar. */
     private void updateKitPage(Player player) {
         ItemStack[] kit = this.getArtKit(this.artkitPage);
         ItemStack[] current = player.getInventory().getStorageContents();
@@ -265,6 +263,7 @@ public class ArtSession implements IArtSession {
      */
     public void clearMap() throws NoSuchFieldException, IllegalAccessException, SQLException, IOException {
         canvas.clear();
+        dirty = true; // persistMap skips clean sessions, and a clear with no stroke after it must still be saved
         this.persistMap(true);
        //map.clear();
     }
@@ -298,7 +297,9 @@ public class ArtSession implements IArtSession {
 			if (kitReference.get() != null && !kitReference.get().isEmpty()) {
 				return kitReference.get().get(page).clone();
 			}
-			kitReference = new WeakReference<>(new LinkedList<>());
+			// Hold the list strongly while it is built: the weak reference alone can be cleared mid-build.
+			List<ItemStack[]> kit = new LinkedList<>();
+			kitReference = new WeakReference<>(kit);
 			Palette palette = ArtMap.instance().getDyePalette();
 			int numDyes = palette.getDyes(DyeType.DYE).length;
 			int pages = (int) Math.ceil(numDyes / 18d);
@@ -341,10 +342,9 @@ public class ArtSession implements IArtSession {
 				if(!ArtMap.instance().getConfiguration().DISABLE_PAINTBRUSH) {
 					itemStack[34] = ArtMaterial.PAINT_BRUSH.getItem();
 				}
-				kitReference.get().add(itemStack);
+				kit.add(itemStack);
 			}
+			return kit.get(page).clone();
 		}
-
-		return kitReference.get().get(page).clone();
     }
 }
